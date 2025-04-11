@@ -1,0 +1,51 @@
+# --- Frontend (React or Next.js) ---
+/frontend/node_modules
+/frontend/build
+/frontend/.pnp
+/frontend/pnp.js
+/frontend/.DS_Store
+
+# Frontend env files
+/frontend/.env.local
+/frontend/.env.development.local
+/frontend/.env.test.local
+/frontend/.env.production.local
+
+# Frontend logs
+/frontend/npm-debug.log*
+/frontend/yarn-debug.log*
+/frontend/yarn-error.log*
+
+
+# --- Backend (FastAPI) ---
+/backend/venv
+/backend/__pycache__/
+/backend/*.pyc
+/backend/*.pyo
+/backend/*.pyd
+/backend/.DS_Store
+
+# Backend env file
+/backend/.env
+
+# Pytest cache
+/backend/.pytest_cache
+/backend/.mypy_cache
+/backend/.coverage
+/backend/.env.*
+
+# --- Root ---
+.DS_Store
+*.log
+*.sqlite3
+*.db
+*.sql-journal
+.env
+.env.*
+
+# Mac system files
+._*
+
+# General environment files
+*.env
+
