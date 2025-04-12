@@ -8,11 +8,15 @@ router = APIRouter()
 async def has_recent_rejection(db, sender_id: int, receiver_id: int):
     query = """
         SELECT * FROM friendships
-        WHERE sender_id = $1 AND receiver_id = $2
-          AND status = 'rejected'
-          AND last_timestamp >= NOW() - INTERVAL '5 minutes'
+        WHERE (
+            (sender_id = $1 AND receiver_id = $2)
+            OR (sender_id = $2 AND receiver_id = $1)
+        )
+        AND status = 'rejected'
+        AND last_timestamp >= NOW() - INTERVAL '5 minutes'
     """
     return await db.fetchrow(query, sender_id, receiver_id)
+
 
 @router.post("/send-friend-request")
 async def send_friend_request(request: FriendRequest, db = Depends(get_db)):
