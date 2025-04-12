@@ -10,12 +10,18 @@ class StockTransactionRequest(BaseModel):
     shares: int  # positive = buy, negative = sell
     price_per_share: float
 
+class CashOperationRequest(BaseModel):
+    amount: float
+
+class CashTransferByNameRequest(BaseModel):
+    amount: float
+    target_portfolio_name: str
+
 @router.post("/portfolio/transaction")
 async def handle_stock_transaction(req: StockTransactionRequest, db=Depends(get_db)):
     if req.shares == 0:
         raise HTTPException(status_code=400, detail="Transaction must involve at least 1 share")
 
-    # Fetch latest price (used to calculate total transaction value)
     price_row = await db.fetchrow("""
         SELECT close FROM stockpricehistory
         WHERE symbol = $1
@@ -26,9 +32,8 @@ async def handle_stock_transaction(req: StockTransactionRequest, db=Depends(get_
         raise HTTPException(status_code=404, detail="Stock price not found")
 
     price_per_share = price_row["close"]
-    total_price = abs(req.shares) * price_per_share  # always positive
+    total_price = abs(req.shares) * price_per_share
 
-    # Check if portfolio exists
     portfolio = await db.fetchrow(
         "SELECT cash_balance FROM portfolios WHERE portfolio_id = $1",
         req.portfolio_id
@@ -40,7 +45,6 @@ async def handle_stock_transaction(req: StockTransactionRequest, db=Depends(get_
     is_buy = req.shares > 0
     trans_type = "buy" if is_buy else "sell"
 
-    # Sell: check if user owns enough shares
     if not is_buy:
         holding = await db.fetchrow(
             "SELECT shares FROM portfolioholdings WHERE portfolio_id = $1 AND stock_symbol = $2",
@@ -49,25 +53,22 @@ async def handle_stock_transaction(req: StockTransactionRequest, db=Depends(get_
         if not holding or holding["shares"] < abs(req.shares):
             raise HTTPException(status_code=400, detail="Insufficient shares to sell")
 
-    # Buy: check if user has enough cash
     if is_buy and current_cash < total_price:
         raise HTTPException(status_code=400, detail="Insufficient cash")
 
     async with db.transaction():
-        # Update portfolio cash
         new_cash = current_cash - total_price if is_buy else current_cash + total_price
         await db.execute(
             "UPDATE portfolios SET cash_balance = $1 WHERE portfolio_id = $2",
             new_cash, req.portfolio_id
         )
 
-        # Update holdings
         holding = await db.fetchrow(
             "SELECT shares FROM portfolioholdings WHERE portfolio_id = $1 AND stock_symbol = $2",
             req.portfolio_id, req.stock_symbol
         )
         if holding:
-            new_shares = holding["shares"] + req.shares  # handles both buy and sell
+            new_shares = holding["shares"] + req.shares
             if new_shares < 0:
                 raise HTTPException(status_code=400, detail="Negative share count not allowed")
             elif new_shares == 0:
@@ -86,7 +87,6 @@ async def handle_stock_transaction(req: StockTransactionRequest, db=Depends(get_
                 req.portfolio_id, req.stock_symbol, req.shares
             )
 
-        # Insert into transactions table
         await db.execute(
             """
             INSERT INTO transactions (portfolio_id, stock_symbol, shares, total_price, the_timestamp, trans_type)
@@ -94,7 +94,7 @@ async def handle_stock_transaction(req: StockTransactionRequest, db=Depends(get_
             """,
             req.portfolio_id,
             req.stock_symbol,
-            abs(req.shares),  # store shares as positive
+            abs(req.shares),
             total_price,
             trans_type
         )
@@ -125,3 +125,106 @@ async def get_portfolio_holdings(portfolio_id: int, db=Depends(get_db)):
     """
     rows = await db.fetch(query, portfolio_id)
     return [dict(row) for row in rows]
+
+@router.get("/portfolio/{portfolio_id}/value")
+async def get_portfolio_value(portfolio_id: int, db=Depends(get_db)):
+    result = await db.fetchrow("""
+        SELECT 
+            SUM(ph.shares * sph.close) AS total_market_value
+        FROM portfolioholdings ph
+        JOIN LATERAL (
+            SELECT close
+            FROM stockpricehistory
+            WHERE symbol = ph.stock_symbol
+            ORDER BY timestamp DESC
+            LIMIT 1
+        ) sph ON TRUE
+        WHERE ph.portfolio_id = $1
+    """, portfolio_id)
+    return {"portfolio_id": portfolio_id, "market_value": float(result["total_market_value"] or 0.0)}
+
+@router.post("/portfolio/{portfolio_id}/deposit")
+async def deposit_cash(portfolio_id: int, req: CashOperationRequest, db=Depends(get_db)):
+    if req.amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be positive")
+
+    await db.execute(
+        """
+        UPDATE portfolios SET cash_balance = cash_balance + $1
+        WHERE portfolio_id = $2
+        """, req.amount, portfolio_id
+    )
+
+    return {"status": "success", "message": f"${req.amount} deposited"}
+
+@router.post("/portfolio/{portfolio_id}/withdraw")
+async def withdraw_cash(portfolio_id: int, req: CashOperationRequest, db=Depends(get_db)):
+    if req.amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be positive")
+
+    row = await db.fetchrow("SELECT cash_balance FROM portfolios WHERE portfolio_id = $1", portfolio_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+
+    if row["cash_balance"] < req.amount:
+        raise HTTPException(status_code=400, detail="Insufficient funds")
+
+    await db.execute(
+        """
+        UPDATE portfolios SET cash_balance = cash_balance - $1
+        WHERE portfolio_id = $2
+        """, req.amount, portfolio_id
+    )
+
+    return {"status": "success", "message": f"${req.amount} withdrawn"}
+
+@router.post("/portfolio/{portfolio_id}/transfer")
+async def transfer_cash(portfolio_id: int, req: CashTransferByNameRequest, db=Depends(get_db)):
+    if req.amount <= 0:
+        raise HTTPException(status_code=400, detail="Amount must be positive")
+
+    # Find the target portfolio ID based on name
+    target = await db.fetchrow(
+        "SELECT portfolio_id FROM portfolios WHERE name = $1",
+        req.target_portfolio_name
+    )
+    if not target:
+        raise HTTPException(status_code=404, detail="Target portfolio not found")
+
+    target_id = target["portfolio_id"]
+
+    # Check source cash
+    sender_cash = await db.fetchval(
+        "SELECT cash_balance FROM portfolios WHERE portfolio_id = $1", portfolio_id
+    )
+    if sender_cash is None or sender_cash < req.amount:
+        raise HTTPException(status_code=400, detail="Insufficient funds")
+
+    async with db.transaction():
+        await db.execute(
+            "UPDATE portfolios SET cash_balance = cash_balance - $1 WHERE portfolio_id = $2",
+            req.amount, portfolio_id
+        )
+        await db.execute(
+            "UPDATE portfolios SET cash_balance = cash_balance + $1 WHERE portfolio_id = $2",
+            req.amount, target_id
+        )
+
+    return {"status": "success", "message": f"Transferred ${req.amount} to {req.target_portfolio_name}"}
+
+@router.get("/portfolio/{portfolio_id}/cash")
+async def get_cash_balance(portfolio_id: int, db=Depends(get_db)):
+    result = await db.fetchrow("SELECT cash_balance FROM portfolios WHERE portfolio_id = $1", portfolio_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    return {"cash_balance": float(result["cash_balance"])}
+
+@router.get("/portfolio/id-by-name")
+async def get_portfolio_id_by_name(name: str, user_id: int, db=Depends(get_db)):
+    result = await db.fetchrow(
+        "SELECT portfolio_id FROM portfolios WHERE name = $1 AND user_id = $2",
+        name, user_id
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    return {"portfolio_id": result["portfolio_id"]}

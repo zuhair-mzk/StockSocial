@@ -14,11 +14,30 @@ const DashboardPage = () => {
   const [successMessage, setSuccessMessage] = useState("");
   const navigate = useNavigate();
 
+  const fetchMarketValue = async (portfolioId) => {
+    try {
+      const res = await fetch(`${API}/portfolio/${portfolioId}/value`);
+      const data = await res.json();
+      return data.market_value || 0;
+    } catch (err) {
+      console.error("Error fetching market value:", err);
+      return 0;
+    }
+  };
+
   const fetchPortfolios = async () => {
     try {
       const res = await fetch(`${API}/portfolios?user_id=${userId}`);
       const data = await res.json();
-      setPortfolios(data);
+
+      const enriched = await Promise.all(
+        data.map(async (p) => {
+          const marketValue = await fetchMarketValue(p.portfolio_id);
+          return { ...p, market_value: marketValue };
+        })
+      );
+
+      setPortfolios(enriched);
     } catch (err) {
       console.error("Error fetching portfolios:", err);
     }
@@ -123,6 +142,10 @@ const DashboardPage = () => {
                     <h3 className="font-bold text-lg">{p.name}</h3>
                     <p className="text-gray-600">
                       Cash Balance: ${parseFloat(p.cash_balance).toFixed(2)}
+                    </p>
+                    <p className="text-gray-600">
+                      Total Market Value: $
+                      {parseFloat(p.market_value).toFixed(2)}
                     </p>
                   </div>
                   <button
