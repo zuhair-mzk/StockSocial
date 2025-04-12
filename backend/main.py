@@ -5,7 +5,7 @@ import asyncpg
 import os
 
 from routes import loginregister
-from routes import friendship
+from routes import friendship  # ✅ make sure this line is present
 
 load_dotenv()
 
@@ -14,7 +14,7 @@ app = FastAPI()
 # CORS setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # frontend origin
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -22,11 +22,12 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup():
-    app.state.db = await asyncpg.connect(os.getenv("DATABASE_URL"))
+    app.state.pool = await asyncpg.create_pool(os.getenv("DATABASE_URL"))
 
 @app.on_event("shutdown")
 async def shutdown():
-    await app.state.db.close()
+    await app.state.pool.close()
 
+# ✅ Register routers
 app.include_router(loginregister.router)
 app.include_router(friendship.router)
