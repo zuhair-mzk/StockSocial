@@ -1,19 +1,35 @@
 import React from "react";
 import LoginForm from "../components/LoginForm";
-import { loginUser } from "../services/auth";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const LoginPage = () => {
-  const handleLogin = async (credentials) => {
-    const res = await loginUser(credentials);
-    if (res.success) {
-      alert("Login successful!");
-      // Redirect or update context
-    } else {
-      alert(res.message);
+  const { login } = useAuth(); // grabs setUserId or login from context
+  const navigate = useNavigate();
+
+  const handleLogin = async (username, password) => {
+    try {
+      const res = await fetch("http://localhost:8000/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || "Login failed");
+      }
+
+      // Save user ID in context
+      login(data.user_id, data.username);
+      navigate("/dashboard");
+    } catch (err) {
+      throw err; // This will be caught in LoginForm and show an error message
     }
   };
 
-  return <LoginForm onSubmit={handleLogin} />;
+  return <LoginForm onLogin={handleLogin} />;
 };
 
 export default LoginPage;

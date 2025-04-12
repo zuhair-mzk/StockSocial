@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException, Depends
-from fastapi import Request
 from models import LoginRequest, RegisterRequest
 from dependencies import get_db
 
@@ -11,7 +10,6 @@ async def login(request_data: LoginRequest, db = Depends(get_db)):
         SELECT user_id, username FROM users
         WHERE username = $1 AND password = $2
     """
-    
     result = await db.fetchrow(query, request_data.username, request_data.password)
 
     if not result:
@@ -21,7 +19,6 @@ async def login(request_data: LoginRequest, db = Depends(get_db)):
 
 @router.post("/register")
 async def register(request_data: RegisterRequest, db = Depends(get_db)):
-    # Check if username already exists
     query_check = "SELECT user_id FROM users WHERE username = $1"
     existing_user = await db.fetchrow(query_check, request_data.username)
 
@@ -36,3 +33,18 @@ async def register(request_data: RegisterRequest, db = Depends(get_db)):
     result = await db.fetchrow(query_insert, request_data.username, request_data.password)
 
     return {"user_id": result["user_id"], "username": result["username"]}
+
+@router.get("/user-id")
+async def get_user_id(username: str, db = Depends(get_db)):
+    result = await db.fetchrow("SELECT user_id FROM users WHERE username = $1", username)
+    if not result:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"user_id": result["user_id"]}
+
+@router.get("/get-user-id")
+async def get_user_id(username: str, db = Depends(get_db)):
+    query = "SELECT user_id FROM users WHERE username = $1"
+    result = await db.fetchrow(query, username)
+    if not result:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"user_id": result["user_id"]}
