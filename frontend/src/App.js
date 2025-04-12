@@ -15,7 +15,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./context/AuthContext";
-import DashboardPage from "./pages/DashboardPage"; // Optional custom dashboard
+import DashboardPage from "./pages/DashboardPage";
 
 function App() {
   return (
@@ -28,14 +28,17 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/portfolio" element={<PortfolioDetails />} />
-            <Route path="/stock-lists" element={<StockListPage />} />
-            <Route path="/stock-lists/:id" element={<StockListDetails />} />
-            <Route path="/friends" element={<FriendsPage />} />
-            <Route path="/transactions" element={<TransactionsPage />} />
             <Route
               path="/portfolio/:portfolioId"
               element={<PortfolioDetails />}
             />
+
+            {/* Stock List Routes */}
+            <Route path="/stock-lists" element={<StockListPage />} />
+            <Route path="/stock-lists/:id" element={<StockListDetails />} />
+
+            <Route path="/friends" element={<FriendsPage />} />
+            <Route path="/transactions" element={<TransactionsPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
