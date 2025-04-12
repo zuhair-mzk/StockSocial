@@ -5,6 +5,7 @@ import asyncpg
 import os
 
 from routes import loginregister
+from routes import friendship
 
 load_dotenv()
 
@@ -28,3 +29,4 @@ async def shutdown():
     await app.state.db.close()
 
 app.include_router(loginregister.router)
+app.include_router(friendship.router)
