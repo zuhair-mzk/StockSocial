@@ -8,7 +8,7 @@ router = APIRouter()
 @router.post("/login")
 async def login(request_data: LoginRequest, db = Depends(get_db)):
     query = """
-        SELECT user_id FROM users
+        SELECT user_id, username FROM users
         WHERE username = $1 AND password = $2
     """
     
@@ -17,7 +17,7 @@ async def login(request_data: LoginRequest, db = Depends(get_db)):
     if not result:
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
-    return {"user_id": result["user_id"]}
+    return {"user_id": result["user_id"], "username": result["username"]}
 
 @router.post("/register")
 async def register(request_data: RegisterRequest, db = Depends(get_db)):
@@ -31,8 +31,8 @@ async def register(request_data: RegisterRequest, db = Depends(get_db)):
     query_insert = """
         INSERT INTO users (username, password)
         VALUES ($1, $2)
-        RETURNING user_id
+        RETURNING user_id, username
     """
     result = await db.fetchrow(query_insert, request_data.username, request_data.password)
 
-    return {"user_id": result["user_id"]}
+    return {"user_id": result["user_id"], "username": result["username"]}
