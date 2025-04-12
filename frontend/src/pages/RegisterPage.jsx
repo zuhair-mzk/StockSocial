@@ -22,7 +22,7 @@ const RegisterPage = () => {
       }
 
       // ✅ Auto login
-      login(data.user_id, username);
+      login(data.user_id, data.username);
       navigate("/dashboard");
     } catch (err) {
       throw err;

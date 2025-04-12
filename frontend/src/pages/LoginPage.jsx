@@ -22,7 +22,7 @@ const LoginPage = () => {
       }
 
       // Save user ID in context
-      login(data.user_id);
+      login(data.user_id, data.username);
       navigate("/dashboard");
     } catch (err) {
       throw err; // This will be caught in LoginForm and show an error message
