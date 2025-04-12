@@ -32,8 +32,4 @@ async def register(request_data: RegisterRequest, db = Depends(get_db)):
     """
     result = await db.fetchrow(query_insert, request_data.username, request_data.password)
 
-<<<<<<< HEAD
     return {"user_id": result["user_id"], "username": result["username"]}
-=======
-    return {"user_id": result["user_id"], "username": result["username"]}
->>>>>>> origin/main
