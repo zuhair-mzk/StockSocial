@@ -19,6 +19,7 @@ const PortfolioDetails = () => {
   const [amount, setAmount] = useState("");
   const [recipientName, setRecipientName] = useState("");
   const [allPortfolios, setAllPortfolios] = useState([]);
+  const [showModal, setShowModal] = useState(false);
 
   const fetchHoldings = async () => {
     try {
@@ -85,6 +86,7 @@ const PortfolioDetails = () => {
       setSuccess(`Transaction successful at $${price.toFixed(2)} per share!`);
       setSymbol("");
       setShares("");
+      setShowModal(false);
       fetchHoldings();
       fetchCashBalance();
     } catch (err) {
@@ -132,7 +134,7 @@ const PortfolioDetails = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: parseFloat(amount),
-          target_portfolio_name: recipientName, // ✅ THIS IS THE FIX
+          target_portfolio_name: recipientName,
         }),
       });
 
@@ -155,7 +157,16 @@ const PortfolioDetails = () => {
     <div className="min-h-screen bg-gray-100">
       <Navbar />
       <div className="max-w-4xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-4">Portfolio: {portfolioName}</h1>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold">Portfolio: {portfolioName}</h1>
+          <button
+            onClick={() => setShowModal(true)}
+            className="bg-green-600 text-white px-4 py-2 rounded"
+          >
+            Buy / Sell Stock
+          </button>
+        </div>
+
         <p className="mb-4 text-gray-700">
           Cash Balance: ${cashBalance.toFixed(2)}
         </p>
@@ -230,6 +241,54 @@ const PortfolioDetails = () => {
             ))}
           </tbody>
         </table>
+
+        {showModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
+            <div className="bg-white p-6 rounded shadow-md w-96">
+              <h2 className="text-xl font-bold mb-4">Buy / Sell Stock</h2>
+              <div className="space-y-3">
+                <select
+                  value={mode}
+                  onChange={(e) => setMode(e.target.value)}
+                  className="border px-3 py-2 rounded w-full"
+                >
+                  <option>Buy</option>
+                  <option>Sell</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="Stock Symbol (e.g., AAPL)"
+                  value={symbol}
+                  onChange={(e) => setSymbol(e.target.value)}
+                  className="border px-3 py-2 rounded w-full"
+                />
+                <input
+                  type="number"
+                  placeholder="Shares"
+                  value={shares}
+                  onChange={(e) => setShares(e.target.value)}
+                  className="border px-3 py-2 rounded w-full"
+                />
+                {error && <p className="text-red-500 text-sm">{error}</p>}
+                {success && <p className="text-green-500 text-sm">{success}</p>}
+                <div className="flex justify-end space-x-2">
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="px-4 py-2 border rounded"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleTransaction}
+                    className="px-4 py-2 bg-blue-600 text-white rounded"
+                  >
+                    Submit
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
