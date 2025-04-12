@@ -48,3 +48,11 @@ class ReviewCreate(BaseModel):
     reviewer_id: int
     stocklist_id: int
     content: str
+
+class FullStockPriceInput(BaseModel):
+    stock_symbol: str
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: int

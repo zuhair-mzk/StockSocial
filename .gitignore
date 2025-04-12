@@ -33,6 +33,7 @@
 /backend/.mypy_cache
 /backend/.coverage
 /backend/.env.*
+/backend/__pycache__/
 
 # --- Root ---
 .DS_Store
@@ -49,3 +50,5 @@
 # General environment files
 *.env
 
+# Ignore all venv files
+venv/
