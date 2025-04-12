@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi import Request
+from fastapi.middleware.cors import CORSMiddleware
 from models import LoginRequest, RegisterRequest
 from dependencies import get_db
 
