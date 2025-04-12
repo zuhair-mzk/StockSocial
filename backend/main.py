@@ -8,8 +8,7 @@ from routes import loginregister
 from routes import friendship
 from routes import portfolio, portfolioholdings
 from routes import stocks
-
-
+from routes import stocklist
 
 load_dotenv()
 
@@ -37,5 +36,4 @@ app.include_router(friendship.router)
 app.include_router(portfolio.router)  
 app.include_router(portfolioholdings.router) 
 app.include_router(stocks.router)
-
-
+app.include_router(stocklist.router)

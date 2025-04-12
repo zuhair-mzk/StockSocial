@@ -25,4 +25,26 @@ class StockTransactionRequest(BaseModel):
     portfolio_id: int
     stock_symbol: str
     shares: int
-    price_per_share: float   # <-- this is required
+    price_per_share: float
+
+class StocklistCreate(BaseModel):
+    name: str
+    is_public: bool
+    creator_id: int
+
+class DeleteStocklistRequest(BaseModel):
+    stocklist_id: int
+    user_id: int
+
+class StocklistItem(BaseModel):
+    stock_symbol: str
+    shares: int
+
+class ShareRequest(BaseModel):
+    owner_id: int
+    sharedto_id: int
+
+class ReviewCreate(BaseModel):
+    reviewer_id: int
+    stocklist_id: int
+    content: str
