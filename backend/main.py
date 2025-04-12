@@ -5,6 +5,7 @@ import os
 
 from routes import loginregister
 from routes import friendship
+from routes import stocklist
 
 load_dotenv()
 
@@ -20,3 +21,4 @@ async def shutdown():
 
 app.include_router(loginregister.router)
 app.include_router(friendship.router)
+app.include_router(stocklist.router)
