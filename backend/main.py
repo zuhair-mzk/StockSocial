@@ -5,13 +5,17 @@ import asyncpg
 import os
 
 from routes import loginregister
-from routes import friendship  # ✅ make sure this line is present
+from routes import friendship
+from routes import portfolio, portfolioholdings
+from routes import stocks
+
+
 
 load_dotenv()
 
 app = FastAPI()
 
-# CORS setup
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
@@ -28,6 +32,10 @@ async def startup():
 async def shutdown():
     await app.state.pool.close()
 
-# ✅ Register routers
 app.include_router(loginregister.router)
 app.include_router(friendship.router)
+app.include_router(portfolio.router)  
+app.include_router(portfolioholdings.router) 
+app.include_router(stocks.router)
+
+

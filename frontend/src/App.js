@@ -32,6 +32,10 @@ function App() {
             <Route path="/stock-lists/:id" element={<StockListDetails />} />
             <Route path="/friends" element={<FriendsPage />} />
             <Route path="/transactions" element={<TransactionsPage />} />
+            <Route
+              path="/portfolio/:portfolioId"
+              element={<PortfolioDetails />}
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
