@@ -54,7 +54,11 @@ const StockListCard = ({ list, type, onDelete }) => {
       </div>
       <div className="flex space-x-2">
         <button
-          onClick={() => navigate(`/stock-lists/${list.stocklist_id}`)}
+          onClick={() =>
+            navigate(`/stock-lists/${list.stocklist_id}`, {
+              state: { listType: type, listData: list },
+            })
+          }
           className="text-blue-600 text-sm border px-3 py-1 rounded"
         >
           View

@@ -14,6 +14,15 @@ const DashboardPage = () => {
   const [successMessage, setSuccessMessage] = useState("");
   const navigate = useNavigate();
 
+  // Stock price input states
+  const [stockSymbol, setStockSymbol] = useState("");
+  const [open, setOpen] = useState("");
+  const [high, setHigh] = useState("");
+  const [low, setLow] = useState("");
+  const [close, setClose] = useState("");
+  const [volume, setVolume] = useState("");
+  const [stockMessage, setStockMessage] = useState("");
+
   const fetchMarketValue = async (portfolioId) => {
     try {
       const res = await fetch(`${API}/portfolio/${portfolioId}/value`);
@@ -83,11 +92,48 @@ const DashboardPage = () => {
     }
   };
 
+  const handleAddStockPrice = async () => {
+    setStockMessage("");
+
+    if (!stockSymbol || !open || !high || !low || !close || !volume) {
+      setStockMessage("Please fill in all stock fields.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API}/stock/add-price`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stock_symbol: stockSymbol,
+          open: parseFloat(open),
+          high: parseFloat(high),
+          low: parseFloat(low),
+          close: parseFloat(close),
+          volume: parseInt(volume),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.detail || "Failed to add stock price");
+
+      setStockMessage("Stock price data added successfully!");
+      setStockSymbol("");
+      setOpen("");
+      setHigh("");
+      setLow("");
+      setClose("");
+      setVolume("");
+    } catch (err) {
+      setStockMessage(err.message);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Navbar />
       <div className="max-w-4xl mx-auto p-6">
-        {/* Welcome Header */}
         <h1 className="text-3xl font-bold text-center text-gray-800">
           Welcome, {username || "Guest"} 👋
         </h1>
@@ -123,6 +169,66 @@ const DashboardPage = () => {
           {error && <p className="text-red-500 mt-2 text-sm">{error}</p>}
           {successMessage && (
             <p className="text-green-500 mt-2 text-sm">{successMessage}</p>
+          )}
+        </div>
+
+        {/* Add Stock Price Section */}
+        <div className="bg-white p-6 rounded shadow mb-8">
+          <h2 className="text-xl font-semibold mb-4">Add New Stock Price</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <input
+              type="text"
+              placeholder="Stock Symbol (e.g., AAPL)"
+              value={stockSymbol}
+              onChange={(e) => setStockSymbol(e.target.value)}
+              className="border px-4 py-2 rounded"
+            />
+            <input
+              type="number"
+              placeholder="Open"
+              value={open}
+              onChange={(e) => setOpen(e.target.value)}
+              className="border px-4 py-2 rounded"
+            />
+            <input
+              type="number"
+              placeholder="High"
+              value={high}
+              onChange={(e) => setHigh(e.target.value)}
+              className="border px-4 py-2 rounded"
+            />
+            <input
+              type="number"
+              placeholder="Low"
+              value={low}
+              onChange={(e) => setLow(e.target.value)}
+              className="border px-4 py-2 rounded"
+            />
+            <input
+              type="number"
+              placeholder="Close"
+              value={close}
+              onChange={(e) => setClose(e.target.value)}
+              className="border px-4 py-2 rounded"
+            />
+            <input
+              type="number"
+              placeholder="Volume"
+              value={volume}
+              onChange={(e) => setVolume(e.target.value)}
+              className="border px-4 py-2 rounded"
+            />
+          </div>
+          <button
+            onClick={handleAddStockPrice}
+            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Add Stock Price
+          </button>
+          {stockMessage && (
+            <p className="mt-2 text-sm text-center text-green-600">
+              {stockMessage}
+            </p>
           )}
         </div>
 

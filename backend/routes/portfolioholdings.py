@@ -89,7 +89,7 @@ async def handle_stock_transaction(req: StockTransactionRequest, db=Depends(get_
 
         await db.execute(
             """
-            INSERT INTO transactions (portfolio_id, stock_symbol, shares, total_price, the_timestamp, trans_type)
+            INSERT INTO transactions (portfolio_id, stock_symbol, shares, total_price, timestamp, trans_type)
             VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, $5)
             """,
             req.portfolio_id,
@@ -228,3 +228,23 @@ async def get_portfolio_id_by_name(name: str, user_id: int, db=Depends(get_db)):
     if not result:
         raise HTTPException(status_code=404, detail="Portfolio not found")
     return {"portfolio_id": result["portfolio_id"]}
+
+@router.get("/portfolio/user-transactions")
+async def get_user_transactions(user_id: int, db=Depends(get_db)):
+    query = """
+        SELECT 
+            t.transaction_id,
+            t.portfolio_id,
+            p.name AS portfolio_name,
+            t.stock_symbol,
+            t.shares,
+            t.total_price,
+            t.timestamp,
+            t.trans_type
+        FROM transactions t
+        JOIN portfolios p ON p.portfolio_id = t.portfolio_id
+        WHERE p.user_id = $1
+        ORDER BY t.timestamp DESC
+    """
+    rows = await db.fetch(query, user_id)
+    return [dict(row) for row in rows]

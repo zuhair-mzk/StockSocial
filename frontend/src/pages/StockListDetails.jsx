@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
+import { useLocation } from "react-router-dom";
 
 const API = "http://localhost:8000";
 
@@ -17,9 +18,14 @@ const StockListDetails = () => {
   const [reviewContent, setReviewContent] = useState("");
   const [message, setMessage] = useState("");
 
-  const isOwner = listInfo?.creator_id === userId;
-  const isPublic = listInfo?.is_public;
-  const isShared = !isOwner && !isPublic;
+  const location = useLocation();
+  const listType = location.state?.listType || "public"; // fallback
+  const passedList = location.state?.listData;
+
+  const isOwner = listType === "private" || listType === "public";
+  const isShared = listType === "shared";
+  const isPublic = listType === "public";
+  const hasReviewed = reviews.some((r) => r.reviewer_id === userId);
 
   const fetchListInfo = async () => {
     const res = await fetch(`${API}/get-stocklists?user_id=${userId}`);
@@ -46,7 +52,7 @@ const StockListDetails = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          stock_symbol: symbol,
+          stock_symbol: symbol.toUpperCase(), // ✅ Normalize to uppercase
           shares: parseInt(shares),
         }),
       });
@@ -103,7 +109,8 @@ const StockListDetails = () => {
   };
 
   useEffect(() => {
-    fetchListInfo();
+    if (passedList) setListInfo(passedList); // Use passed list if available
+    else fetchListInfo(); // Fallback to fetching from the API
     fetchHoldings();
     fetchReviews();
   }, [stocklistId]);
@@ -192,50 +199,40 @@ const StockListDetails = () => {
           {reviews.length === 0 ? (
             <p className="text-sm text-gray-500">No reviews yet.</p>
           ) : (
-            reviews
-              .filter((r) => {
-                if (isPublic) return true;
-                return (
-                  r.reviewer_id === userId || listInfo?.creator_id === userId
-                );
-              })
-              .map((r) => (
-                <div key={r.review_id} className="border-b py-2">
-                  <p className="text-sm text-gray-700">
-                    <strong>{r.username}</strong>: {r.content}
-                  </p>
-                  {(r.reviewer_id === userId ||
-                    listInfo?.creator_id === userId) && (
-                    <button
-                      onClick={() => handleDeleteReview(r.review_id)}
-                      className="text-red-600 text-xs mt-1"
-                    >
-                      Delete
-                    </button>
-                  )}
-                </div>
-              ))
+            reviews.map((r) => (
+              <div key={r.review_id} className="border-b py-2">
+                <p className="text-sm text-gray-700">
+                  <strong>{r.username}</strong>: {r.content}
+                </p>
+                {(isOwner || r.reviewer_id === userId) && (
+                  <button
+                    onClick={() => handleDeleteReview(r.review_id)}
+                    className="text-red-600 text-xs mt-1"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            ))
           )}
 
-          {/* Review Form Logic */}
-          {!isOwner &&
-            !reviews.some((r) => r.reviewer_id === userId) &&
-            (isPublic || isShared) && (
-              <div className="mt-4">
-                <textarea
-                  value={reviewContent}
-                  onChange={(e) => setReviewContent(e.target.value)}
-                  className="w-full border px-3 py-2 rounded mb-2"
-                  placeholder="Leave a review..."
-                />
-                <button
-                  onClick={handleReviewSubmit}
-                  className="bg-blue-600 text-white px-4 py-2 rounded"
-                >
-                  Submit Review
-                </button>
-              </div>
-            )}
+          {/* Review Form */}
+          {!isOwner && !hasReviewed && (isPublic || isShared) && (
+            <div className="mt-4">
+              <textarea
+                value={reviewContent}
+                onChange={(e) => setReviewContent(e.target.value)}
+                className="w-full border px-3 py-2 rounded mb-2"
+                placeholder="Leave a review..."
+              />
+              <button
+                onClick={handleReviewSubmit}
+                className="bg-blue-600 text-white px-4 py-2 rounded"
+              >
+                Submit Review
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

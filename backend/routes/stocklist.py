@@ -120,10 +120,26 @@ async def get_stocklist_value(stocklist_id: int, db=Depends(get_db)):
         WHERE i.stocklist_id = $1
     """, stocklist_id)
 
+    items = await db.fetch("""
+        SELECT i.stock_symbol, i.shares, sp.close AS latest_price,
+               (i.shares * sp.close) AS market_value
+        FROM stocklistitems i
+        JOIN LATERAL (
+            SELECT close
+            FROM stockpricehistory
+            WHERE stock_symbol = i.stock_symbol
+            ORDER BY timestamp DESC
+            LIMIT 1
+        ) sp ON TRUE
+        WHERE i.stocklist_id = $1
+    """, stocklist_id)
+
     return {
         "stocklist_id": stocklist_id,
-        "value": float(result["total_market_value"] or 0.0)
+        "value": float(result["total_market_value"] or 0.0),
+        "items": [dict(row) for row in items]  # ✅ include detailed holdings
     }
+
 
 @router.get("/stocklists/get-public-stocklists")
 async def get_public_stocklists(db = Depends(get_db)):
@@ -175,7 +191,7 @@ async def delete_user_review(user_id: int, stocklist_id: int, db = Depends(get_d
 @router.get("/my-reviews-for-others")
 async def get_my_reviews(user_id: int, db = Depends(get_db)):
     query = """
-        SELECT r.review_id, r.stocklist_id, s.name AS stocklist_name, r.content, r.the_timestamp
+        SELECT r.review_id, r.stocklist_id, s.name AS stocklist_name, r.content, r.timestamp
         FROM reviews r
         JOIN stocklists s ON r.stocklist_id = s.stocklist_id
         WHERE r.reviewer_id = $1
