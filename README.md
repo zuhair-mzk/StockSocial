@@ -218,3 +218,7 @@ The application implements a normalized relational schema with the following key
 - `POST /reviews` - Add review to stock list
 
 **Note**: This application is designed for educational purposes only. No investment advice is offered or should be inferred from any aspect of this project. Historical stock performance does not guarantee future results.
+
+> **Academic Project**: Developed for CSCC43: Introduction to Databases at the University of Toronto  
+> **Timeline**: January - April 2025 (Winter 2025 semester)  
+> **Team**: Zuhair Khan & Danish Mohammed
